@@ -1,18 +1,16 @@
 import random
-import paho.mqtt.client as mqtt 
 import hashlib
 import json
 import os
 
 class Controller():
-    def __init__(self, broker_adress):
-        self.controller_client = mqtt.Client()
+    def __init__(self, broker_adress, mqtt_client):
+        self.mqtt_miner = mqtt_client
         self.broker_adress = broker_adress
         self.transactions = {}
 
     def on_connect(self, client, userdata, flags, rc):
-        print("Controller conectado ao broker MQTT")
-        self.controller_client.subscribe("sd/solution")  
+        self.mqtt_miner.subscribe("sd/solution")  
 
     def on_message(self, client, userdata, msg):
         topic = msg.topic
@@ -31,7 +29,7 @@ class Controller():
                     "TransactionID": transactionId, 
                     "Solution": data["Solution"],
                     "Result": 1})
-                self.controller_client.publish(f"sd/{data['ClientID']}/result", result_payload)
+                self.mqtt_miner.publish(f"sd/{data['ClientID']}/result", result_payload)
 
                 self.transactions[transactionId]['winner'] = data["ClientID"]
                 self.transactions[transactionId]['solution'] = data["Solution"]
@@ -44,7 +42,7 @@ class Controller():
                     "TransactionID": transactionId, 
                     "Solution": self.transactions[transactionId]['solution'],
                     "Result": 0})
-                self.controller_client.publish(f"sd/{data['ClientID']}/result", result_payload)
+                self.mqtt_miner.publish(f"sd/{data['ClientID']}/result", result_payload)
     
     def __validSolution(self, transactionId, solution):
         if(transactionId > max(self.transactions.keys())):
@@ -72,7 +70,7 @@ class Controller():
                 self.transactions[0] = {'challenge': random.randint(14, 20), 'solution': None, 'winner': -1}
                 newTransactionId = 0
 
-            self.controller_client.publish("sd/challenge", json.dumps(self.transactions[newTransactionId]))
+            self.mqtt_miner.publish("sd/challenge", json.dumps(self.transactions[newTransactionId]))
             print("Gerando Novo Desafio!")
             self.__printTransations()
 
@@ -87,17 +85,18 @@ class Controller():
         print("----------------------------------------------------\n")
 
     def runController(self):
-        self.controller_client.on_message = self.on_message
-        self.controller_client.on_connect = self.on_connect
+        self.mqtt_miner.on_message = self.on_message
+        self.mqtt_miner.on_connect = self.on_connect
 
-        self.controller_client.connect(self.broker_adress)
-        self.controller_client.loop_start()
+        self.mqtt_miner.connect(self.broker_adress)
+        self.mqtt_miner.loop_start()
 
         try:
+            print("\n----------------------------------------------------")
             print("Controller iniciado. Para sair digite 'e', para gerar novo desafio aperte enter...")
             self.__newChallenge()
                 
         except KeyboardInterrupt:
-            self.controller_client.loop_stop()
-            self.controller_client.disconnect()
+            self.mqtt_miner.loop_stop()
+            self.mqtt_miner.disconnect()
             print("Servidor MQTT desconectado")

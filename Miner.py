@@ -1,21 +1,18 @@
 import random
-import paho.mqtt.client as mqtt 
 import hashlib
 import json
-import os
 import string
 
 class Miner():
-    def __init__(self, broker_adress, id):
-        self.miner_client = mqtt.Client()
+    def __init__(self, broker_adress, id, mqtt_client):
+        self.mqq_miner = mqtt_client
         self.id = id
         self.broker_adress = broker_adress
         self.transactions = {}
     
     def on_connect(self, client, userdata, flags, rc):
-        print(f"Client {self.id}: Conectado ao broker MQTT")
-        self.miner_client.subscribe("sd/challenge")
-        self.miner_client.subscribe(f"sd/{self.id}/result")
+        self.mqq_miner.subscribe("sd/challenge")
+        self.mqq_miner.subscribe(f"sd/{self.id}/result")
 
     def on_message(self, client, userdata, msg):
         topic = msg.topic
@@ -42,7 +39,7 @@ class Miner():
                 "TransactionID": transactionId,
                 "Solution": solution
             }
-            self.miner_client.publish("sd/solution", json.dumps(solution_msg))
+            self.mqq_miner.publish("sd/solution", json.dumps(solution_msg))
 
         elif topic == f"sd/{self.id}/result":
             solution = data['Solution']
@@ -71,8 +68,8 @@ class Miner():
                 return solution
 
     def runMiner(self):
-        self.miner_client.on_message = self.on_message
-        self.miner_client.on_connect = self.on_connect
+        self.mqq_miner.on_message = self.on_message
+        self.mqq_miner.on_connect = self.on_connect
 
-        self.miner_client.connect(self.broker_adress)
-        self.miner_client.loop_start()
+        self.mqq_miner.connect(self.broker_adress)
+        self.mqq_miner.loop_start()
