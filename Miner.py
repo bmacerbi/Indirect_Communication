@@ -31,7 +31,12 @@ class Miner():
                     'winner': -1
                     }
             else:
-                self.transactions[0] = {'challenge': data['challenge'], 'solution': None, 'winner': -1}
+                self.transactions[0] = {
+                    'challenge': data['challenge'],
+                    'solution': None,
+                    'winner': -1
+                    }
+                
                 transactionId = 0
 
             solution_msg = {
@@ -39,6 +44,7 @@ class Miner():
                 "TransactionID": transactionId,
                 "Solution": solution
             }
+
             self.mqq_miner.publish("sd/solution", json.dumps(solution_msg))
 
         elif topic == f"sd/{self.id}/result":

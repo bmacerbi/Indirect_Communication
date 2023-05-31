@@ -29,7 +29,7 @@ Em sequência, podemos inicializar a aplicação por meio da seguinte chamada, o
 $ python3 application.py <número_de_clients> <ip_do_broker>
 ```
 
-Por fim, caso queire finalizar o *EMQX* ao final da execução, podemos chamar o seguinte comando:
+Por fim, caso queira finalizar o *EMQX* ao final da execução, podemos chamar o seguinte comando:
 
 ```
 $ sudo emqx stop
@@ -43,12 +43,44 @@ $ sudo emqx stop
 ---
 ## **Implementação**
 
+### **Application**
+
+Inicializa os clientes e os conecta ao broker. A quantidade de clientes inicializados e o endereço do broker são passados como argumentos.
+
+### **Client**
+
+Define a classe Client. Cada client possui algumas variáveis importantes, como seu ID, uma lista de clientes conectados, a tabela de votos, o ID do controlador, etc.
+
+Os métodos **_on_connect_** e **_on_message_** são chamados quando o cliente se conecta ao corretor MQTT e quando recebe uma mensagem, respectivamente. Ao se conectar, um cliente se inscreve nos tópicos **"sd/init"** e **"sd/voting"**. Ao receber uma mensagem, caso seja do tópico **init**, o cliente atualiza a lista de clientes conectados, e caso o mínimo de clientes já estejam conectados, a votação é iniciada. Caso a mensagem recebida seja do tópico **voting**, o cliente atualiza sua tabela de votos com o voto recebido.
+
+O método **vote** é usado para gerar um voto aleatório e publicá-lo no tópico **"sd/voting"**. O voto é o ID de um dos clientes conectados. Já o método **countVote** conta os votos recebidos, determinando o vencedor. O ID do controlador é atualizado com o ID do cliente com mais votos.
+
+Por fim, os métodos **startController** e **startMiner** instanciam o controlador e os mineradores, respectivamente. Um cliente é inicializado a partir de **runClient**, onde se conecta ao broker, publica uma mensagem em **"sd/init"** e então espera o resultado da eleição. Caso seja o vencedor, inicia um controlador, e caso contrário, um minerador. 
+
+### **Controller**
+
+O controlador é responsável por publicar os desafios, receber as soluções, validá-las e publicar os resultados.
+
+Ao se conectar, o controlador se inscreve no tópico **"sd/solution"**, para receber as soluções enviadas pelos mineradores. 
+
+O método **newChallenge** gera um novo desafio aleatório e o publica no tópico **"sd/challenge"** para que os mineradores possam participar. O método espera até que uma solução válida seja recebida.
+
+Ao receber uma mensagem de solução, o controlador verifica se ela é válida. Se sim (e ainda não houver solução), ele publica uma mensagem de resultado e atualiza as informações da transação. Caso contrário, ele publica uma mensagem indicando que a solução é inválida.
+
+### **Miner**
+
+O minerador recebe os desafios do controlador, busca uma solução para aquele desafio e publica a solução encontrada.
+
+Ao se conectar, o minerador se increve nos tópicos **"sd/challenge"** e **"sd/{self.id}/result"**, para receber os desafios e resultados das transações.
+
+Ao receber uma mensagem de desafio, o minerador busca uma solução válida para ele, e ao encontrar, publica-a no tópico **"sd/solution"**. Caso a mensagem recebida seja de resultados, o minerador recebe o resultado de sua solução enviada e atualiza sua tabela de transações de acordo com as informações retornadas.
+
 ---
 ## **Resultados**
 
-Para demonstrarmos alguns resultados da aplicação, resolvemos por executar um ambiente com **4** clientes e um broker local. A partir daí, iremos exibir o comportamento do sistema, visto que aplicações gráficas não se encaixam bem nesse contexto.
+Para demonstrarmos alguns resultados da aplicação, resolvemos executar um ambiente com **4** clientes e um broker local. A partir daí, iremos exibir o comportamento do sistema, visto que aplicações gráficas não se encaixam bem nesse contexto.
 
-Podemos dividir a execução do sistema em dois estágios, eleição e mineiração. No primeiro momento os processos irão realizar uma votação para eleger um cliente controlador, podemos visualizar o resultado dessa votação na *imagem 1*, onde cada cliente irá exibir uma lista com os votos de todos os participantes, tais votos são computados e o **ID** com mais pontos é eleito o controlador.
+Podemos dividir a execução do sistema em dois estágios, eleição e mineração. No primeiro momento os processos irão realizar uma votação para eleger um cliente controlador, podemos visualizar o resultado dessa votação na **Imagem 1**, onde cada cliente irá exibir uma lista com os votos de todos os participantes. Tais votos são computados e o **ID** com mais pontos é eleito o controlador.
 
 > ![Imagem 1](results/eleicao.png)
 
@@ -56,14 +88,14 @@ Visualiza-se no exemplo acima a exibição dessas listas, onde cada elemento rep
 
 - Client **56834** recebeu 0 votos
 - Client **4118** recebeu 0 votos
-- Client **8363** recebeu 2 votos
-  - De **4118** e **8363**
+- Client **8363** recebeu 2 votos:
+  - Dos clients **4118** e **8363**
 - Client **60513** recebeu 2 votos
-  - De **56834** e **60513**
+  - Dos clients **56834** e **60513**
 
-Podemos ver que um impate ocorreu! Nesse caso escolhemos o cliente com maior ID como critério de desempate, dessa forma o processo **60513** foi eleito o controlador.
+Podemos ver que um empate ocorreu. Nesse caso escolhemos o cliente com maior ID como critério de desempate, dessa forma o processo **60513** foi eleito o controlador.
 
-Prosseguimos agora para o segundo estado do sistema, a mineiração, exibido na *imagem 2*. Visualizamos a primeira ação sendo do controlador, que é a exibição da tabela de desafios, nesse caso contendo **1** desafio de dificuldade **19**. Em sequência os mineradores irão receber a mensagem e iniciar a busca por uma solução.
+Prosseguimos agora para o segundo estado do sistema, a mineração, exibido na *imagem 2*. Visualizamos a primeira ação sendo do controlador, que é a exibição da tabela de desafios, nesse caso contendo **1** desafio de dificuldade **19**. Em sequência os mineradores irão receber a mensagem e iniciar a busca por uma solução.
 
 Quando o desafio é solucionado, o controlador exibe a tabela atualizada com a solução enviada e o ID do vencedor. Nesse caso o ID que primeiro solucionou o problema foi o cliente **8363**, com a respota **eaTKaDJRV9**. Em sequência, publica-se a mensagem que o desafio foi solucionado e os mineradores irão atualizar as suas tabelas própias, contabilizando uma vitória ou uma derrota. 
 

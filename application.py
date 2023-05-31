@@ -8,7 +8,7 @@ if __name__ == '__main__':
         qtd_cients = int(sys.argv[1])
         broker_adress = sys.argv[2]
     except IndexError:
-        print("Argumentos inválios. A linha de comando deve conter: <quantidade_clients> <broker_adress>") 
+        print("Argumentos inválidos. A linha de comando deve conter: <quantidade_clients> <broker_adress>") 
 
     for i in range(qtd_cients):
         client = Client.Client(broker_adress, qtd_cients)

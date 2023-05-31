@@ -59,13 +59,13 @@ class Client():
             else:
                 vote_counter[self.vote_table[client_id]] += 1
 
-        winner_voutes = -1
+        winner_votes = -1
         winner_id = -1
         for client in vote_counter:
-            if vote_counter[client] > winner_voutes:
-                winner_voutes = vote_counter[client]
+            if vote_counter[client] > winner_votes:
+                winner_votes = vote_counter[client]
                 winner_id = client
-            elif vote_counter[client] == winner_voutes:
+            elif vote_counter[client] == winner_votes:
                 if client > winner_id:
                     winner_id = client
 
