@@ -38,26 +38,30 @@ $ sudo emqx stop
 ---
 ## **Link para o vídeo no Youtube**
 
-> https://youtu.be/8Gfp4N2vZuM
+> https://youtu.be/qpwoUgGtQbQ
 
 ---
 ## **Implementação**
 
-### **Application**
+Para apresentarmos a nossa aplicação iremos passar por cada arquivo desenvolvido dando uma ideia geral das suas funcionalidades.
 
-Inicializa os clientes e os conecta ao broker. A quantidade de clientes inicializados e o endereço do broker são passados como argumentos.
+### **application.py**
 
-### **Client**
+Tem como responsabilidade realizar a inicialização/execução do sistema. Para isso, informa-se a quantidade de clientes a serem inicializados e o endereço do broker. A partir daí, inicia-se **N** *threads* onde, em cada uma delas, será instanciado um cliente e executado a sua chamada para o processo de votação.
 
-Define a classe Client. Cada client possui algumas variáveis importantes, como seu ID, uma lista de clientes conectados, a tabela de votos, o ID do controlador, etc.
+### **Client.py**
 
-Os métodos **_on_connect_** e **_on_message_** são chamados quando o cliente se conecta ao corretor MQTT e quando recebe uma mensagem, respectivamente. Ao se conectar, um cliente se inscreve nos tópicos **"sd/init"** e **"sd/voting"**. Ao receber uma mensagem, caso seja do tópico **init**, o cliente atualiza a lista de clientes conectados, e caso o mínimo de clientes já estejam conectados, a votação é iniciada. Caso a mensagem recebida seja do tópico **voting**, o cliente atualiza sua tabela de votos com o voto recebido.
+Define a classe Client. Cada client possui algumas variáveis importantes, como seu **ID** (um inteiro aleatório de [0, 65335]), uma lista de clientes conectados, a tabela de votos, o **ID** do controlador, etc.
 
-O método **vote** é usado para gerar um voto aleatório e publicá-lo no tópico **"sd/voting"**. O voto é o ID de um dos clientes conectados. Já o método **countVote** conta os votos recebidos, determinando o vencedor. O ID do controlador é atualizado com o ID do cliente com mais votos.
+Os métodos **_on_connect_** e **_on_message_** são chamados quando o cliente se conecta ao broker **MQTT** e quando recebe uma mensagem, respectivamente. Ao se conectar, um cliente se inscreve nos tópicos **"sd/init"** e **"sd/voting"**. Ao receber uma mensagem, caso seja do tópico **init**, o cliente atualiza a lista de clientes conectados, e caso o mínimo de clientes já estejam conectados, a votação é iniciada. Caso a mensagem recebida seja do tópico **voting**, o cliente atualiza sua tabela de votos com o voto recebido.
 
-Por fim, os métodos **startController** e **startMiner** instanciam o controlador e os mineradores, respectivamente. Um cliente é inicializado a partir de **runClient**, onde se conecta ao broker, publica uma mensagem em **"sd/init"** e então espera o resultado da eleição. Caso seja o vencedor, inicia um controlador, e caso contrário, um minerador. 
+O método **vote** é usado para gerar um voto aleatório e publicá-lo no tópico **"sd/voting"**, onde o voto é um **ID** de um dos clientes conectados. Já o método **countVote** conta os votos recebidos, determinando o vencedor e atualizando o **self.controller_id** com o ID do cliente com mais votos.
 
-### **Controller**
+Por fim, os métodos **startController** e **startMiner** instanciam o controlador e os mineradores, respectivamente. 
+
+Um cliente é inicializado a partir de **runClient**, onde se conecta ao broker, publica uma mensagem em **"sd/init"** e então espera o resultado da eleição. A partir desse resultado, acontecerá uma instanciação de um controlador ou um minerador.
+
+### **Controller.py**
 
 O controlador é responsável por publicar os desafios, receber as soluções, validá-las e publicar os resultados.
 
@@ -67,7 +71,7 @@ O método **newChallenge** gera um novo desafio aleatório e o publica no tópic
 
 Ao receber uma mensagem de solução, o controlador verifica se ela é válida. Se sim (e ainda não houver solução), ele publica uma mensagem de resultado e atualiza as informações da transação. Caso contrário, ele publica uma mensagem indicando que a solução é inválida.
 
-### **Miner**
+### **Miner.py**
 
 O minerador recebe os desafios do controlador, busca uma solução para aquele desafio e publica a solução encontrada.
 
