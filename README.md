@@ -80,7 +80,7 @@ Ao se conectar, o minerador se increve nos tópicos **"sd/challenge"** e **"sd/{
 Ao receber uma mensagem de desafio, o minerador busca uma solução válida para ele, e ao encontrar, publica-a no tópico **"sd/solution"**. Caso a mensagem recebida seja de resultados, o minerador recebe o resultado de sua solução enviada e atualiza sua tabela de transações de acordo com as informações retornadas.
 
 ---
-## **Resultados**
+## **Testes e Resultados**
 
 Para demonstrarmos alguns resultados da aplicação, resolvemos executar um ambiente com **4** clientes e um broker local. A partir daí, iremos exibir o comportamento do sistema, visto que aplicações gráficas não se encaixam bem nesse contexto.
 
@@ -108,3 +108,5 @@ Quando o desafio é solucionado, o controlador exibe a tabela atualizada com a s
 A partir desse estágio, podemos prosseguir postando mais desafios ou sair da aplicação com o caractere 'e'.
 
 ## **Conclusão**
+
+A partir dos testes e resultados observados, foi possível concluir que o sistema de comunicação indireta por meio de Publish/Subscribe funcionou como esperado. A publicação e recebimento de mensagens por filas ocorreu de forma correta entre os clientes, controlador e mineradores, permitindo assim o funcionamento eficaz das etapas de votação e mineração, como explicado na análise de testes e resultados.
